@@ -73,20 +73,21 @@
       filtered.forEach((song, i) => {
         const row = document.createElement("tr");
         row.className = "hover:bg-yellow-950 transition-colors";
-        const ratingOptions = Array.from({length:19}, (_,i) => {
-          const v = (10 - i*0.5).toFixed(1);
+        const ratingOptions = Array.from({length:19}, (_,k) => {
+          const v = (10 - k*0.5).toFixed(1);
           return `<option value="${v}">${v}</option>`;
         }).join("");
 
         row.innerHTML = `
           <td class="px-6 py-4 font-mono text-yellow-400">${i+1}</td>
-          <td class="px-6 py-4 font-medium">${song[0]}</td>
-          <td class="px-6 py-4 text-gray-400">${song[1]}</td>
-          <td class="px-6 py-4 text-center font-bold text-yellow-400">${song[2]>0 ? song[2].toFixed(1) : '—'}</td>
-          <td class="px-6 py-4 text-center text-gray-400">${song[3]>0 ? song[3] : '—'}</td>
+          <td class="px-6 py-4 font-medium">${song.title}</td>
+          <td class="px-6 py-4 text-gray-400">${song.album}</td>
+          <td class="px-6 py-4 text-center font-bold text-yellow-400">${song.avg > 0 ? song.avg.toFixed(1) : '—'}</td>
+          <td class="px-6 py-4 text-center text-gray-400">${song.votes > 0 ? song.votes : '—'}</td>
           <td class="px-6 py-4 text-center font-semibold text-emerald-400">—</td>
           <td class="px-6 py-4">
-            <select onchange="rateSong('${song[0]}', this.value)" class="bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white w-full focus:border-yellow-400">
+            <select onchange="rateSong('${song.title}', this.value)" 
+                    class="bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white w-full focus:border-yellow-400">
               <option value="">Rate</option>
               ${ratingOptions}
             </select>
@@ -101,39 +102,28 @@
     function filterAndRender() {
       let filtered = allSongs;
 
-      if (currentAlbumFilter !== "None") filtered = filtered.filter(s => s[1] === currentAlbumFilter);
-
-      if (currentSearch) {
-        const term = currentSearch.toLowerCase().replace(/['’]/g, "'");
-        filtered = filtered.filter(s => s[0].toLowerCase().replace(/['’]/g, "'").includes(term));
+      if (currentAlbumFilter !== "None") {
+        filtered = filtered.filter(s => s.album === currentAlbumFilter);
       }
 
-      filtered.sort((a,b) => (b[2]||0) - (a[2]||0));
+      if (currentSearch) {
+        const term = currentSearch.toLowerCase().replace(/['’]/g, "");
+        filtered = filtered.filter(s => s.title.toLowerCase().replace(/['’]/g, "").includes(term));
+      }
+
+      filtered.sort((a,b) => (b.avg||0) - (a.avg||0));
       renderTable(filtered);
     }
 
     function populateAlbums() {
       const select = document.getElementById("albumFilter");
-      const albumOrder = [
-        "None",
-        "Please Please Me",
-        "With the Beatles",
-        "A Hard Day's Night",
-        "Beatles for Sale",
-        "Help!",
-        "Rubber Soul",
-        "Revolver",
-        "Sgt. Pepper's Lonely Hearts Club Band",
-        "Magical Mystery Tour",
-        "The Beatles",
-        "Yellow Submarine",
-        "Abbey Road",
-        "Let It Be",
-        "Other"
-      ];
+      const albumOrder = ["None","Please Please Me","With the Beatles","A Hard Day's Night","Beatles for Sale","Help!","Rubber Soul","Revolver","Sgt. Pepper's Lonely Hearts Club Band","Magical Mystery Tour","The Beatles","Yellow Submarine","Abbey Road","Let It Be","Other"];
       select.innerHTML = albumOrder.map(a => `<option value="${a}">${a}</option>`).join("");
       select.value = "None";
-      select.addEventListener("change", () => { currentAlbumFilter = select.value; filterAndRender(); });
+      select.addEventListener("change", () => {
+        currentAlbumFilter = select.value;
+        filterAndRender();
+      });
     }
 
     window.rateSong = function(title, value) {
@@ -147,10 +137,7 @@
     };
 
     window.clearAllRatings = function() {
-      if (confirm("Clear ALL your personal ratings?")) {
-        localStorage.clear();
-        location.reload();
-      }
+      if (confirm("Clear ALL your personal ratings?")) location.reload();
     };
 
     window.toggleMyRatings = function() {
@@ -162,12 +149,9 @@
       filterAndRender();
     });
 
+    // Load data
     window.onload = function() {
-      allSongs = [
-        {% for song in songs %}
-        ["{{ song[0] | replace("'", "\\'") }}", "{{ song[1] }}", {{ song[2] }}, {{ song[3] }}],
-        {% endfor %}
-      ];
+      allSongs = {{ songs | tojson }};
       populateAlbums();
       filterAndRender();
     };

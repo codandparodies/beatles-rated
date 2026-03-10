@@ -18,7 +18,7 @@
     <div class="flex justify-between items-start mb-8">
       <div class="flex-1 text-center">
         <h1 class="text-5xl font-bold tracking-tighter beatles-yellow">BEATLES: RATED</h1>
-        <p class="text-gray-400 text-lg mt-2">Rate all 213 songs • Global averages update live</p>
+        <p class="text-gray-400 text-lg mt-2">Rate all 213 songs</p>
       </div>
       <button onclick="toggleMyRatings()" id="viewButton"
               class="px-6 py-3 bg-zinc-800 hover:bg-yellow-600 text-white rounded-2xl font-medium transition-all text-sm">
@@ -53,32 +53,10 @@
           <th class="w-1/12 px-6 py-4 text-center">Global Avg</th>
           <th class="w-1/12 px-6 py-4 text-center">Votes</th>
           <th class="w-1/12 px-6 py-4 text-center">Your Rating</th>
-          <th class="w-2/12 px-6 py-4">Rate it</th>
+          <th class="w-2/12 px-6 py-4">Rate</th>
         </tr>
       </thead>
-      <tbody class="divide-y divide-zinc-800">
-        {% for song in songs %}
-        <tr class="hover:bg-yellow-950 transition-colors">
-          <td class="px-6 py-4 font-mono text-yellow-400">{{ loop.index }}</td>
-          <td class="px-6 py-4 font-medium">{{ song[0] }}</td>
-          <td class="px-6 py-4 text-gray-400">{{ song[1] }}</td>
-          <td class="px-6 py-4 text-center font-bold text-yellow-400">{{ song[2] if song[2] > 0 else '—' }}</td>
-          <td class="px-6 py-4 text-center text-gray-400">{{ song[3] if song[3] > 0 else '—' }}</td>
-          <td class="px-6 py-4 text-center font-semibold text-emerald-400" id="your-{{ loop.index }}">
-            —
-          </td>
-          <td class="px-6 py-4">
-            <select onchange="rateSong('{{ song[0] }}', this.value)" 
-                    class="bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white w-full focus:border-yellow-400">
-              <option value="">Rate now</option>
-              {% for i in range(19) %}
-              <option value="{{ 10 - i*0.5 }}">{{ 10 - i*0.5 }}</option>
-              {% endfor %}
-            </select>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
+      <tbody class="divide-y divide-zinc-800"></tbody>
     </table>
 
     <p class="text-center text-xs text-gray-500 mt-10">
@@ -87,21 +65,79 @@
   </div>
 
   <script>
-    // Basic client-side features (search, filter, My Ratings)
+    let allSongs = [];
     let currentView = "all";
+    let currentAlbumFilter = "None";
     let currentSearch = "";
 
-    function toggleMyRatings() {
-      currentView = currentView === "all" ? "my" : "all";
-      document.getElementById("viewButton").textContent = currentView === "all" ? "View My Ratings" : "View All Songs";
-      location.reload(); // simple refresh for now
+    // Populate table from server data
+    function renderTable(filteredSongs) {
+      const tbody = document.querySelector("#songTable tbody");
+      tbody.innerHTML = "";
+
+      filteredSongs.forEach((song, index) => {
+        const row = document.createElement("tr");
+        row.className = "hover:bg-yellow-950 transition-colors";
+
+        const ratingOptions = Array.from({length: 19}, (_, i) => {
+          const val = (10 - i * 0.5).toFixed(1);
+          return `<option value="${val}">${val}</option>`;
+        }).join("");
+
+        row.innerHTML = `
+          <td class="px-6 py-4 font-mono text-yellow-400">${index + 1}</td>
+          <td class="px-6 py-4 font-medium">${song[0]}</td>
+          <td class="px-6 py-4 text-gray-400">${song[1]}</td>
+          <td class="px-6 py-4 text-center font-bold text-yellow-400">${song[2] > 0 ? song[2].toFixed(1) : '—'}</td>
+          <td class="px-6 py-4 text-center text-gray-400">${song[3] > 0 ? song[3] : '—'}</td>
+          <td class="px-6 py-4 text-center font-semibold text-emerald-400">—</td>
+          <td class="px-6 py-4">
+            <select onchange="rateSong('${song[0]}', this.value)" 
+                    class="bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white w-full focus:border-yellow-400">
+              <option value="">Rate</option>
+              ${ratingOptions}
+            </select>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      document.getElementById("stats").textContent = 
+        `Showing ${filteredSongs.length} song${filteredSongs.length === 1 ? '' : 's'}`;
     }
 
-    document.getElementById("searchInput").addEventListener("input", (e) => {
-      currentSearch = e.target.value.toLowerCase();
-      location.reload(); // simple for now
-    });
+    // Live search + album filter
+    function filterAndRender() {
+      let filtered = allSongs;
 
+      if (currentAlbumFilter !== "None") {
+        filtered = filtered.filter(s => s[1] === currentAlbumFilter);
+      }
+
+      if (currentSearch) {
+        const term = currentSearch.toLowerCase();
+        filtered = filtered.filter(s => s[0].toLowerCase().includes(term));
+      }
+
+      // Auto-sort by global avg descending
+      filtered.sort((a, b) => (b[2] || 0) - (a[2] || 0));
+
+      renderTable(filtered);
+    }
+
+    // Populate album dropdown
+    function populateAlbums() {
+      const select = document.getElementById("albumFilter");
+      const albums = ["None", ...new Set(allSongs.map(s => s[1]))].sort();
+      select.innerHTML = albums.map(a => `<option value="${a}">${a}</option>`).join("");
+      select.value = "None";
+      select.addEventListener("change", () => {
+        currentAlbumFilter = select.value;
+        filterAndRender();
+      });
+    }
+
+    // Rate song
     window.rateSong = function(title, value) {
       if (!value) return;
       const form = document.createElement('form');
@@ -112,11 +148,34 @@
       form.submit();
     };
 
+    window.toggleMyRatings = function() {
+      currentView = currentView === "all" ? "my" : "all";
+      document.getElementById("viewButton").textContent = currentView === "all" ? "View My Ratings" : "View All Songs";
+      location.reload();
+    };
+
     window.clearAllRatings = function() {
       if (confirm("Clear ALL your personal ratings?")) {
         localStorage.clear();
         location.reload();
       }
+    };
+
+    // Search handler
+    document.getElementById("searchInput").addEventListener("input", (e) => {
+      currentSearch = e.target.value;
+      filterAndRender();
+    });
+
+    // Load data from server and initialize
+    window.onload = function() {
+      allSongs = [
+        {% for song in songs %}
+        ["{{ song[0] }}", "{{ song[1] }}", {{ song[2] }}, {{ song[3] }}],
+        {% endfor %}
+      ];
+      populateAlbums();
+      filterAndRender();
     };
   </script>
 </body>

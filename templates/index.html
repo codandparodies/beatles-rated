@@ -36,7 +36,8 @@
         <label class="block text-sm font-medium mb-1 text-gray-400">Filter by Album</label>
         <select id="albumFilter" class="bg-zinc-900 border border-zinc-700 rounded-xl px-5 py-3 focus:outline-none focus:border-yellow-400 text-white"></select>
       </div>
-      <button onclick="clearAllRatings()" class="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-xl font-medium transition-colors">
+      <button onclick="clearAllRatings()" 
+              class="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-xl font-medium transition-colors">
         Clear My Ratings
       </button>
     </div>
@@ -55,7 +56,29 @@
           <th class="w-2/12 px-6 py-4">Rate it</th>
         </tr>
       </thead>
-      <tbody class="divide-y divide-zinc-800"></tbody>
+      <tbody class="divide-y divide-zinc-800">
+        {% for song in songs %}
+        <tr class="hover:bg-yellow-950 transition-colors">
+          <td class="px-6 py-4 font-mono text-yellow-400">{{ loop.index }}</td>
+          <td class="px-6 py-4 font-medium">{{ song[0] }}</td>
+          <td class="px-6 py-4 text-gray-400">{{ song[1] }}</td>
+          <td class="px-6 py-4 text-center font-bold text-yellow-400">{{ song[2] if song[2] > 0 else '—' }}</td>
+          <td class="px-6 py-4 text-center text-gray-400">{{ song[3] if song[3] > 0 else '—' }}</td>
+          <td class="px-6 py-4 text-center font-semibold text-emerald-400" id="your-{{ loop.index }}">
+            —
+          </td>
+          <td class="px-6 py-4">
+            <select onchange="rateSong('{{ song[0] }}', this.value)" 
+                    class="bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white w-full focus:border-yellow-400">
+              <option value="">Rate now</option>
+              {% for i in range(19) %}
+              <option value="{{ 10 - i*0.5 }}">{{ 10 - i*0.5 }}</option>
+              {% endfor %}
+            </select>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
     </table>
 
     <p class="text-center text-xs text-gray-500 mt-10">
@@ -64,23 +87,20 @@
   </div>
 
   <script>
+    // Basic client-side features (search, filter, My Ratings)
     let currentView = "all";
-    let currentAlbumFilter = "None";
     let currentSearch = "";
 
-    function populateAlbums() {
-      const select = document.getElementById("albumFilter");
-      const albumOrder = ["None","Please Please Me","With the Beatles","A Hard Day's Night","Beatles for Sale","Help!","Rubber Soul","Revolver","Sgt. Pepper's Lonely Hearts Club Band","Magical Mystery Tour","The Beatles","Yellow Submarine","Abbey Road","Let It Be","Other"];
-      select.innerHTML = albumOrder.map(a => `<option value="${a}">${a}</option>`).join("");
-      select.value = "None";
-      select.addEventListener("change", () => { currentAlbumFilter = select.value; renderTable(); });
+    function toggleMyRatings() {
+      currentView = currentView === "all" ? "my" : "all";
+      document.getElementById("viewButton").textContent = currentView === "all" ? "View My Ratings" : "View All Songs";
+      location.reload(); // simple refresh for now
     }
 
-    function renderTable() {
-      // This will be filled by the server — for now we just show a placeholder
-      // (we'll improve this in the next step)
-      document.getElementById("stats").innerHTML = "Loading songs...";
-    }
+    document.getElementById("searchInput").addEventListener("input", (e) => {
+      currentSearch = e.target.value.toLowerCase();
+      location.reload(); // simple for now
+    });
 
     window.rateSong = function(title, value) {
       if (!value) return;
@@ -92,21 +112,12 @@
       form.submit();
     };
 
-    window.toggleMyRatings = function() {
-      currentView = currentView === "all" ? "my" : "all";
-      document.getElementById("viewButton").textContent = currentView === "all" ? "View My Ratings" : "View All Songs";
-      renderTable();
-    };
-
     window.clearAllRatings = function() {
       if (confirm("Clear ALL your personal ratings?")) {
         localStorage.clear();
         location.reload();
       }
     };
-
-    populateAlbums();
-    renderTable();
   </script>
 </body>
 </html>

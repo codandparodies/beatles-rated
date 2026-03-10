@@ -1,0 +1,9 @@
+window.rateSong = function(title, value) {
+  if (!value) return;
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '/rate';
+  form.innerHTML = `<input type="hidden" name="title" value="${title}"><input type="hidden" name="rating" value="${value}">`;
+  document.body.appendChild(form);
+  form.submit();
+};

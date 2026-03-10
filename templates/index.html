@@ -9,7 +9,7 @@
     body { font-family: system-ui, sans-serif; }
     th { cursor: pointer; transition: background-color 0.2s; }
     th:hover { background-color: #facc15 !important; color: black; }
-    thead tr:hover { background-color: transparent !important; } /* fixes white bar */
+    thead tr:hover { background-color: transparent !important; }
     tr:hover { background-color: #fefce8; }
     .beatles-yellow { color: #facc15; }
   </style>
@@ -59,10 +59,6 @@
       </thead>
       <tbody class="divide-y divide-zinc-800"></tbody>
     </table>
-
-    <p class="text-center text-xs text-gray-500 mt-10">
-      Global averages update for everyone • Your personal ratings saved in your browser
-    </p>
   </div>
 
   <script>
@@ -105,9 +101,7 @@
     function filterAndRender() {
       let filtered = allSongs;
 
-      if (currentAlbumFilter !== "None") {
-        filtered = filtered.filter(s => s[1] === currentAlbumFilter);
-      }
+      if (currentAlbumFilter !== "None") filtered = filtered.filter(s => s[1] === currentAlbumFilter);
 
       if (currentSearch) {
         const term = currentSearch.toLowerCase().replace(/['’]/g, "'");
@@ -120,13 +114,26 @@
 
     function populateAlbums() {
       const select = document.getElementById("albumFilter");
-      const albums = ["None", ...new Set(allSongs.map(s => s[1]))].sort();
-      select.innerHTML = albums.map(a => `<option value="${a}">${a}</option>`).join("");
+      const albumOrder = [
+        "None",
+        "Please Please Me",
+        "With the Beatles",
+        "A Hard Day's Night",
+        "Beatles for Sale",
+        "Help!",
+        "Rubber Soul",
+        "Revolver",
+        "Sgt. Pepper's Lonely Hearts Club Band",
+        "Magical Mystery Tour",
+        "The Beatles",
+        "Yellow Submarine",
+        "Abbey Road",
+        "Let It Be",
+        "Other"
+      ];
+      select.innerHTML = albumOrder.map(a => `<option value="${a}">${a}</option>`).join("");
       select.value = "None";
-      select.addEventListener("change", () => {
-        currentAlbumFilter = select.value;
-        filterAndRender();
-      });
+      select.addEventListener("change", () => { currentAlbumFilter = select.value; filterAndRender(); });
     }
 
     window.rateSong = function(title, value) {
@@ -147,7 +154,7 @@
     };
 
     window.toggleMyRatings = function() {
-      location.reload(); // simple for now
+      location.reload();
     };
 
     document.getElementById("searchInput").addEventListener("input", e => {
@@ -155,7 +162,6 @@
       filterAndRender();
     });
 
-    // Load data
     window.onload = function() {
       allSongs = [
         {% for song in songs %}

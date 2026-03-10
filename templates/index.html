@@ -1,9 +1,112 @@
-window.rateSong = function(title, value) {
-  if (!value) return;
-  const form = document.createElement('form');
-  form.method = 'POST';
-  form.action = '/rate';
-  form.innerHTML = `<input type="hidden" name="title" value="${title}"><input type="hidden" name="rating" value="${value}">`;
-  document.body.appendChild(form);
-  form.submit();
-};
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Beatles: Rated</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; }
+    th { cursor: pointer; transition: all 0.2s; }
+    th:hover { background-color: #facc15 !important; color: black; }
+    tr:hover { background-color: #fefce8; }
+    .beatles-yellow { color: #facc15; }
+  </style>
+</head>
+<body class="bg-zinc-950 text-white">
+  <div class="max-w-6xl mx-auto p-6">
+    <div class="flex justify-between items-start mb-8">
+      <div class="flex-1 text-center">
+        <h1 class="text-5xl font-bold tracking-tighter beatles-yellow">BEATLES: RATED</h1>
+        <p class="text-gray-400 text-lg mt-2">Rate all 213 songs • Global averages update live</p>
+      </div>
+      <button onclick="toggleMyRatings()" id="viewButton"
+              class="px-6 py-3 bg-zinc-800 hover:bg-yellow-600 text-white rounded-2xl font-medium transition-all text-sm">
+        View My Ratings
+      </button>
+    </div>
+
+    <div class="flex flex-wrap gap-4 mb-6 items-end">
+      <div class="flex-1">
+        <label class="block text-sm font-medium mb-1 text-gray-400">Search songs</label>
+        <input id="searchInput" type="text" placeholder="Yesterday, Eleanor Rigby..." 
+               class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-5 py-3 focus:outline-none focus:border-yellow-400 text-white placeholder-gray-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1 text-gray-400">Filter by Album</label>
+        <select id="albumFilter" class="bg-zinc-900 border border-zinc-700 rounded-xl px-5 py-3 focus:outline-none focus:border-yellow-400 text-white"></select>
+      </div>
+      <button onclick="clearAllRatings()" class="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-xl font-medium transition-colors">
+        Clear My Ratings
+      </button>
+    </div>
+
+    <div id="stats" class="text-sm text-gray-400 mb-3 text-right"></div>
+
+    <table id="songTable" class="w-full bg-zinc-900 rounded-2xl overflow-hidden shadow-2xl">
+      <thead>
+        <tr class="bg-zinc-800">
+          <th class="w-8 px-6 py-4 text-left">Rank</th>
+          <th class="w-5/12 px-6 py-4 text-left">Song</th>
+          <th class="w-2/12 px-6 py-4 text-left">Album</th>
+          <th class="w-1/12 px-6 py-4 text-center">Global Avg</th>
+          <th class="w-1/12 px-6 py-4 text-center">Votes</th>
+          <th class="w-1/12 px-6 py-4 text-center">Your Rating</th>
+          <th class="w-2/12 px-6 py-4">Rate it</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-zinc-800"></tbody>
+    </table>
+
+    <p class="text-center text-xs text-gray-500 mt-10">
+      Global averages update for everyone • Your personal ratings saved in your browser
+    </p>
+  </div>
+
+  <script>
+    let currentView = "all";
+    let currentAlbumFilter = "None";
+    let currentSearch = "";
+
+    function populateAlbums() {
+      const select = document.getElementById("albumFilter");
+      const albumOrder = ["None","Please Please Me","With the Beatles","A Hard Day's Night","Beatles for Sale","Help!","Rubber Soul","Revolver","Sgt. Pepper's Lonely Hearts Club Band","Magical Mystery Tour","The Beatles","Yellow Submarine","Abbey Road","Let It Be","Other"];
+      select.innerHTML = albumOrder.map(a => `<option value="${a}">${a}</option>`).join("");
+      select.value = "None";
+      select.addEventListener("change", () => { currentAlbumFilter = select.value; renderTable(); });
+    }
+
+    function renderTable() {
+      // This will be filled by the server — for now we just show a placeholder
+      // (we'll improve this in the next step)
+      document.getElementById("stats").innerHTML = "Loading songs...";
+    }
+
+    window.rateSong = function(title, value) {
+      if (!value) return;
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/rate';
+      form.innerHTML = `<input type="hidden" name="title" value="${title}"><input type="hidden" name="rating" value="${value}">`;
+      document.body.appendChild(form);
+      form.submit();
+    };
+
+    window.toggleMyRatings = function() {
+      currentView = currentView === "all" ? "my" : "all";
+      document.getElementById("viewButton").textContent = currentView === "all" ? "View My Ratings" : "View All Songs";
+      renderTable();
+    };
+
+    window.clearAllRatings = function() {
+      if (confirm("Clear ALL your personal ratings?")) {
+        localStorage.clear();
+        location.reload();
+      }
+    };
+
+    populateAlbums();
+    renderTable();
+  </script>
+</body>
+</html>

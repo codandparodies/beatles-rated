@@ -7,8 +7,9 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body { font-family: system-ui, sans-serif; }
-    th { cursor: pointer; transition: all 0.2s; }
+    th { cursor: pointer; transition: background-color 0.2s; }
     th:hover { background-color: #facc15 !important; color: black; }
+    thead tr:hover { background-color: transparent !important; } /* fixes white bar */
     tr:hover { background-color: #fefce8; }
     .beatles-yellow { color: #facc15; }
   </style>
@@ -66,34 +67,30 @@
 
   <script>
     let allSongs = [];
-    let currentView = "all";
     let currentAlbumFilter = "None";
     let currentSearch = "";
 
-    // Populate table from server data
-    function renderTable(filteredSongs) {
+    function renderTable(filtered) {
       const tbody = document.querySelector("#songTable tbody");
       tbody.innerHTML = "";
 
-      filteredSongs.forEach((song, index) => {
+      filtered.forEach((song, i) => {
         const row = document.createElement("tr");
         row.className = "hover:bg-yellow-950 transition-colors";
-
-        const ratingOptions = Array.from({length: 19}, (_, i) => {
-          const val = (10 - i * 0.5).toFixed(1);
-          return `<option value="${val}">${val}</option>`;
+        const ratingOptions = Array.from({length:19}, (_,i) => {
+          const v = (10 - i*0.5).toFixed(1);
+          return `<option value="${v}">${v}</option>`;
         }).join("");
 
         row.innerHTML = `
-          <td class="px-6 py-4 font-mono text-yellow-400">${index + 1}</td>
+          <td class="px-6 py-4 font-mono text-yellow-400">${i+1}</td>
           <td class="px-6 py-4 font-medium">${song[0]}</td>
           <td class="px-6 py-4 text-gray-400">${song[1]}</td>
-          <td class="px-6 py-4 text-center font-bold text-yellow-400">${song[2] > 0 ? song[2].toFixed(1) : '—'}</td>
-          <td class="px-6 py-4 text-center text-gray-400">${song[3] > 0 ? song[3] : '—'}</td>
+          <td class="px-6 py-4 text-center font-bold text-yellow-400">${song[2]>0 ? song[2].toFixed(1) : '—'}</td>
+          <td class="px-6 py-4 text-center text-gray-400">${song[3]>0 ? song[3] : '—'}</td>
           <td class="px-6 py-4 text-center font-semibold text-emerald-400">—</td>
           <td class="px-6 py-4">
-            <select onchange="rateSong('${song[0]}', this.value)" 
-                    class="bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white w-full focus:border-yellow-400">
+            <select onchange="rateSong('${song[0]}', this.value)" class="bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white w-full focus:border-yellow-400">
               <option value="">Rate</option>
               ${ratingOptions}
             </select>
@@ -102,11 +99,9 @@
         tbody.appendChild(row);
       });
 
-      document.getElementById("stats").textContent = 
-        `Showing ${filteredSongs.length} song${filteredSongs.length === 1 ? '' : 's'}`;
+      document.getElementById("stats").textContent = `Showing ${filtered.length} song${filtered.length===1?'':'s'}`;
     }
 
-    // Live search + album filter
     function filterAndRender() {
       let filtered = allSongs;
 
@@ -115,17 +110,14 @@
       }
 
       if (currentSearch) {
-        const term = currentSearch.toLowerCase();
-        filtered = filtered.filter(s => s[0].toLowerCase().includes(term));
+        const term = currentSearch.toLowerCase().replace(/['’]/g, "'");
+        filtered = filtered.filter(s => s[0].toLowerCase().replace(/['’]/g, "'").includes(term));
       }
 
-      // Auto-sort by global avg descending
-      filtered.sort((a, b) => (b[2] || 0) - (a[2] || 0));
-
+      filtered.sort((a,b) => (b[2]||0) - (a[2]||0));
       renderTable(filtered);
     }
 
-    // Populate album dropdown
     function populateAlbums() {
       const select = document.getElementById("albumFilter");
       const albums = ["None", ...new Set(allSongs.map(s => s[1]))].sort();
@@ -137,7 +129,6 @@
       });
     }
 
-    // Rate song
     window.rateSong = function(title, value) {
       if (!value) return;
       const form = document.createElement('form');
@@ -148,12 +139,6 @@
       form.submit();
     };
 
-    window.toggleMyRatings = function() {
-      currentView = currentView === "all" ? "my" : "all";
-      document.getElementById("viewButton").textContent = currentView === "all" ? "View My Ratings" : "View All Songs";
-      location.reload();
-    };
-
     window.clearAllRatings = function() {
       if (confirm("Clear ALL your personal ratings?")) {
         localStorage.clear();
@@ -161,17 +146,20 @@
       }
     };
 
-    // Search handler
-    document.getElementById("searchInput").addEventListener("input", (e) => {
+    window.toggleMyRatings = function() {
+      location.reload(); // simple for now
+    };
+
+    document.getElementById("searchInput").addEventListener("input", e => {
       currentSearch = e.target.value;
       filterAndRender();
     });
 
-    // Load data from server and initialize
+    // Load data
     window.onload = function() {
       allSongs = [
         {% for song in songs %}
-        ["{{ song[0] }}", "{{ song[1] }}", {{ song[2] }}, {{ song[3] }}],
+        ["{{ song[0] | replace("'", "\\'") }}", "{{ song[1] }}", {{ song[2] }}, {{ song[3] }}],
         {% endfor %}
       ];
       populateAlbums();

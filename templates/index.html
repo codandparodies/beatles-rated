@@ -80,13 +80,13 @@
 
         row.innerHTML = `
           <td class="px-6 py-4 font-mono text-yellow-400">${i+1}</td>
-          <td class="px-6 py-4 font-medium">${song.title}</td>
-          <td class="px-6 py-4 text-gray-400">${song.album}</td>
-          <td class="px-6 py-4 text-center font-bold text-yellow-400">${song.avg > 0 ? song.avg.toFixed(1) : '—'}</td>
-          <td class="px-6 py-4 text-center text-gray-400">${song.votes > 0 ? song.votes : '—'}</td>
+          <td class="px-6 py-4 font-medium">${song[0]}</td>
+          <td class="px-6 py-4 text-gray-400">${song[1]}</td>
+          <td class="px-6 py-4 text-center font-bold text-yellow-400">${song[2] > 0 ? song[2].toFixed(1) : '—'}</td>
+          <td class="px-6 py-4 text-center text-gray-400">${song[3] > 0 ? song[3] : '—'}</td>
           <td class="px-6 py-4 text-center font-semibold text-emerald-400">—</td>
           <td class="px-6 py-4">
-            <select onchange="rateSong('${song.title}', this.value)" 
+            <select onchange="rateSong('${song[0]}', this.value)" 
                     class="bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white w-full focus:border-yellow-400">
               <option value="">Rate</option>
               ${ratingOptions}
@@ -103,15 +103,15 @@
       let filtered = allSongs;
 
       if (currentAlbumFilter !== "None") {
-        filtered = filtered.filter(s => s.album === currentAlbumFilter);
+        filtered = filtered.filter(s => s[1] === currentAlbumFilter);
       }
 
       if (currentSearch) {
         const term = currentSearch.toLowerCase().replace(/['’]/g, "");
-        filtered = filtered.filter(s => s.title.toLowerCase().replace(/['’]/g, "").includes(term));
+        filtered = filtered.filter(s => s[0].toLowerCase().replace(/['’]/g, "").includes(term));
       }
 
-      filtered.sort((a,b) => (b.avg||0) - (a.avg||0));
+      filtered.sort((a,b) => (b[2]||0) - (a[2]||0));
       renderTable(filtered);
     }
 
@@ -149,9 +149,8 @@
       filterAndRender();
     });
 
-    // Load data
     window.onload = function() {
-      allSongs = {{ songs | tojson }};
+      allSongs = {{ songs | tojson | safe }};
       populateAlbums();
       filterAndRender();
     };
